@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Board from "./components/board/Board";
 import Historty from "./components/history/Historty";
-import Square from "./components/square/Square";
 
 const getBoardSize = () => {
     var getSize = prompt(
@@ -78,6 +77,7 @@ const Game = () => {
             var firstSquare = squaresArray[solution[0]];
             if (!firstSquare) continue;
             firstSquare = firstSquare.value;
+            //eslint-disable-next-line no-loop-func
             if (
                 solution.reduce(
                     (acc, squareIndex) =>
