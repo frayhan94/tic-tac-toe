@@ -39,8 +39,9 @@ function App() {
         ...history,
       newCloneSquare
     ];
+    const winner = calculateWinner(cloneSquare);
     // if single item board already clicked reject for second click
-    if(cloneSquare[index]) {
+    if(winner || cloneSquare[index]) {
       return;
     }
     cloneSquare[index] =xIsNext? "X" : 'O';
@@ -67,7 +68,14 @@ function App() {
     )
   })
 
-  calculateWinner(current.squares);
+    const winner = calculateWinner(current.squares);
+    let status;
+    if (winner) {
+        status = 'Winner is ' + winner;
+    } else {
+        status = ` Next Player is:  ${statusForNextPlayer}`;
+    }
+
   return (
     <div className="App">
       <h2 className={'title'}>Tic Tac Toe Game</h2>
@@ -76,7 +84,7 @@ function App() {
           onClick={handleBoardClick}
       />
       <h2 className={'title'}>
-        Next Player is:  {statusForNextPlayer}
+          {status}
       </h2>
       <ul>
         {moves}
