@@ -1,96 +1,137 @@
-import {useState} from "react";
-import './App.css';
-import Board from './component/board';
-import calculateWinner from "./utils/calculateWinner";
-function App() {
+import React, { useState, useEffect } from "react";
+import Board from "./components/board/Board";
+import Historty from "./components/history/Historty";
+import Square from "./components/square/Square";
 
-// fill default value to 0 for our tic tac toe square
-  // this will collect all boards that clicker per user
-  // e.g index 0 which is default [null,null,null,null,null,null,null,null,null]
-  // e.g index 1 [X,null,null,null,null,null,null,null,null]
-  // e.g index 2 [X,O,null,null,null,null,null,null,null]
-  const [history, setHistory] = useState([
-    {
-      squares: Array(9).fill(null)
+const getBoardSize = () => {
+    var getSize = prompt(
+        "Please enter game size (positive number)\ndefault is 3 (3x3 board)",
+        3
+    );
+    var boardSize = parseInt(getSize);
+    while (isNaN(boardSize)) {
+        getSize = prompt("Wrong input\nPlease enter game size (positive number)");
+        boardSize = parseInt(getSize);
     }
-  ]);
+    return boardSize;
+};
+const GetAllSuolutions = (boardSize) => {
+    const solutions = [];
+    const diagonal1 = [];
+    const diagonal2 = [];
 
-  // zero means no click yet. X is in turn
-  const [stepNumber, setStepNumber] = useState(0);
-  const [xIsNext, setXIsNext] =  useState(true);
+    for (var rowIndex = 0; rowIndex < boardSize; rowIndex++) {
+        var rowSolution = [];
+        var columnSolution = [];
+        diagonal1.push(rowIndex * boardSize + rowIndex);
+        diagonal2.push(rowIndex * boardSize + (boardSize - rowIndex - 1));
+        const rowStart = rowIndex * boardSize;
+        for (var columnIndex = 0; columnIndex < boardSize; columnIndex++) {
+            rowSolution.push(rowStart + columnIndex);
+            columnSolution.push(columnIndex * boardSize + rowIndex);
+        }
+        solutions.push(rowSolution);
+        solutions.push(columnSolution);
+        rowSolution = [];
+        columnSolution = [];
+    }
 
+    solutions.push(diagonal1);
+    solutions.push(diagonal2);
 
+    return solutions;
+};
 
-  const  jumpTo = (step) => {
-    setStepNumber(step);
-    setXIsNext((step%2)===0);
-  };
+const boardSize = getBoardSize();
+const solutions = GetAllSuolutions(boardSize);
+const numOfSquare = boardSize * boardSize;
 
+const Game = () => {
+    const initialSqauresArray = [];
+    const [xIsNext, setXIsNext] = useState(true);
+    const [squaresArray, setSquaresArray] = useState(initialSqauresArray);
+    const [history, setHistory] = useState([]);
+    const [winner, setWinner] = useState();
+    const [numOfFilledSquares, setNumOfFilledSquares] = useState(0);
 
-  const handleBoardClick = (index) => {
-    const current = history[history.length - 1];
-    // Duplicate square using slice.
-    const cloneSquare = current.squares.slice();
-
-    const newCloneSquare = {
-      squares: cloneSquare
+    const squareClickHandler = (squareNumber) => () => {
+        if (squaresArray[squareNumber] || winner) return;
+        setNumOfFilledSquares((prev) => prev + 1);
+        const value = xIsNext ? "X" : "O";
+        squaresArray[squareNumber] = { value: value, winner: "" };
+        const newHistory = [...history];
+        newHistory.push(
+            `player ${xIsNext ? "X" : "O"} has played on square ${squareNumber}`
+        );
+        setHistory(newHistory);
+        setXIsNext((prev) => !prev);
     };
-    const newHistory = [
-        ...history,
-      newCloneSquare
-    ];
-    const winner = calculateWinner(cloneSquare);
-    // if single item board already clicked reject for second click
-    if(winner || cloneSquare[index]) {
-      return;
-    }
-    cloneSquare[index] =xIsNext? "X" : 'O';
-    setXIsNext(!xIsNext);
-    setStepNumber(stepNumber + 1);
-    setHistory(newHistory);
-  };
 
-  const statusForNextPlayer =  xIsNext ? "X" : "O";
-  const current = history[stepNumber];
-  // Render button that collects from history.
-  // e.g go to 1, go to 2, go to 3
-  // which 1,2,3 indicated the length of history
-  const moves = history.map((step,move) => {
-    const desc = move ? 'Go to #' + move : 'Start the Game';
+    const whoWon = () => {
+        for (
+            var solutionIndex = 0;
+            solutionIndex < solutions.length;
+            solutionIndex++
+        ) {
+            const solution = solutions[solutionIndex];
+            console.log(squaresArray[solution[0]]);
+            var firstSquare = squaresArray[solution[0]];
+            if (!firstSquare) continue;
+            firstSquare = firstSquare.value;
+            if (
+                solution.reduce(
+                    (acc, squareIndex) =>
+                        acc &&
+                        squaresArray[squareIndex] &&
+                        firstSquare === squaresArray[squareIndex].value,
+                    true
+                )
+            ) {
+                solution.map(
+                    (squareIndex) =>
+                        (squaresArray[squareIndex] = {
+                            ...squaresArray[squareIndex],
+                            winner: "winner",
+                        })
+                );
+                return firstSquare;
+            }
+        }
+    };
+
+    const resetHandler = () => {
+        setXIsNext(true);
+        setSquaresArray(initialSqauresArray);
+        setWinner();
+        setHistory([]);
+        setNumOfFilledSquares(0);
+    };
+
+    useEffect(() => {
+        setWinner(whoWon());
+    }, [xIsNext]);
+
+    var titleText;
+    if (winner) titleText = `${winner} has won the game`;
+    else {
+        if (numOfFilledSquares === numOfSquare) titleText = `Its a tie`;
+        else titleText = `player ${xIsNext ? "X" : "O"} is next`;
+    }
     return (
-        <li key={move}>
-          <button onClick={() => {
-            jumpTo(move);
-          }}>
-            {desc}
-          </button>
-        </li>
-    )
-  })
+        <div className='game-area'>
+            <h2>Tic Tac Toe</h2>
+            <h3>{titleText}</h3>
+            <Board
+                boardSize={boardSize}
+                squaresArray={squaresArray}
+                squareClickHandler={squareClickHandler}
+            />
+            <button onClick={resetHandler} className='reset'>
+                Reset
+            </button>
+            <Historty history={history} />
+        </div>
+    );
+};
 
-    const winner = calculateWinner(current.squares);
-    let status;
-    if (winner) {
-        status = 'Winner is ' + winner;
-    } else {
-        status = ` Next Player is:  ${statusForNextPlayer}`;
-    }
-
-  return (
-    <div className="App">
-      <h2 className={'title'}>Tic Tac Toe Game</h2>
-      <Board
-          squares={current.squares}
-          onClick={handleBoardClick}
-      />
-      <h2 className={'title'}>
-          {status}
-      </h2>
-      <ul>
-        {moves}
-      </ul>
-    </div>
-  );
-}
-
-export default App;
+export default Game;
